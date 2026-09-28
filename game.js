@@ -1,10 +1,10 @@
-const { WORLD, createGame, step, boundsAt, sharkTeeth } = await import('./physics.js' + new URL(import.meta.url).search);
+const { WORLD, createGame, step, boundsAt, sharkTeeth, squidTentacles } = await import('./physics.js' + new URL(import.meta.url).search);
 const canvas = document.querySelector('#ocean'), ctx = canvas.getContext('2d');
 const $ = id => document.getElementById(id);
 const joystick = $('joystick'), stick = $('stick'), boost = $('boost');
 const menu = $('menu');
 const input = { x: 0, y: 0, boost: false }, keys = new Set(), boostPointers = new Set();
-let state = createGame(new URL(location.href).searchParams.get('mission') === '2' ? 2 : 1), width = 0, height = 0, dpr = 1, camera = { x: 855, y: 557, scale: 1 }, last = 0, accumulator = 0, stickPointer = null, previousPhase = '', previousHealth = -1, previousMission = 0, paused = false;
+let state = createGame(Number(new URL(location.href).searchParams.get('mission')) || 1), width = 0, height = 0, dpr = 1, camera = { x: 855, y: 557, scale: 1 }, last = 0, accumulator = 0, stickPointer = null, previousPhase = '', previousHealth = -1, previousMission = 0, paused = false;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let bubbles = [];
 function resize() {
@@ -56,9 +56,10 @@ $('result-missions').addEventListener('click',()=>openMenu(true));
 $('menu-back').addEventListener('click',()=>showMissionPanel(false));
 $('mission-1').addEventListener('click',()=>startMission(1));
 $('mission-2').addEventListener('click',()=>startMission(2));
+$('mission-3').addEventListener('click',()=>startMission(3));
 menu.addEventListener('close',()=>{clearInput();last=0;accumulator=0;});
 $('retry').addEventListener('click',()=>startMission(state.mission));
-$('next-mission').addEventListener('click',()=>startMission(2));
+$('next-mission').addEventListener('click',()=>startMission(Math.min(3,state.mission+1)));
 
 function ellipse(x,y,rx,ry,color) { ctx.fillStyle=color; ctx.beginPath(); ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2); ctx.fill(); }
 function path(points,color,stroke,line=1) { ctx.beginPath(); points(ctx); if(color){ctx.fillStyle=color;ctx.fill();} if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=line;ctx.stroke();} }
@@ -72,6 +73,7 @@ function background(t) {
   for(let i=0;i<65;i++){let x=((i*173.91-camera.x*.19)%(width+40)+width+40)%(width+40)-20;let y=((i*97.73-t*(3+i%5))%(height+30)+height+30)%(height+30)-15;ellipse(x,y,i%7===0?1.6:.8,i%7===0?1.6:.8,'#98d5cd38');}
 }
 function fish(t) {
+  if(state.mission===3){drawSquid(t);return;}
   const shark = state.mission === 2;
   // One fixed, enormous silhouette, with a cutaway mouth in the same world coordinates.
   path(p=>{p.moveTo(2920,520);p.bezierCurveTo(3160,280,3290,260,3240,470);p.quadraticCurveTo(3195,580,3260,760);p.quadraticCurveTo(3150,865,2910,650);p.closePath();},'#285963','#39717a',5);
@@ -122,6 +124,43 @@ function fish(t) {
   if(state.phase!=='escape'&&state.phase!=='won'&&state.phase!=='eaten')drawOrb(WORLD.orbX,WORLD.orbY,t,1);
   ctx.restore();
 }
+function drawSquid(t) {
+  // A purple mantle, broad fins, and curling arms give this boss its own silhouette.
+  path(p=>{p.moveTo(2520,230);p.lineTo(3270,115);p.lineTo(3090,570);p.lineTo(3270,1030);p.lineTo(2520,880);p.closePath();},'#573b77','#986992',5);
+  ctx.save();ctx.lineCap='round';
+  for(let i=0;i<6;i++) {
+    const upper=i<3,k=i%3,rootY=upper?280+k*40:810-k*30;
+    const endX=540+k*150,endY=upper?140+k*65:950-k*55;
+    path(p=>{p.moveTo(1440,rootY);p.bezierCurveTo(950,rootY+(upper?-100:100),endX-120,endY+(upper?140:-140),endX,endY);p.quadraticCurveTo(endX+85,endY-65,endX+140,endY+15);},null,i%2?'#785080':'#604577',48-k*7);
+    for(let j=0;j<6;j++) ellipse(900+j*66,rootY+(upper?-42:42),7,4,'#cf8fb17d');
+  }
+  ctx.restore();
+  const mantle=ctx.createLinearGradient(1300,30,2450,1120);mantle.addColorStop(0,'#ad78a7');mantle.addColorStop(.45,'#77518b');mantle.addColorStop(1,'#342d5b');
+  ellipse(2130,570,1050,550,mantle);
+  for(let i=0;i<18;i++)ellipse(1540+i*73,140+Math.sin(i*.7)*70,5,3,'#e2bad256');
+  ellipse(1360,252,79,71,'#472a61');ellipse(1350,250,59,55,'#e4c6ad');ellipse(1340,250,37,42,'#261c45');ellipse(1325,230,12,11,'#f1e5da');
+  ctx.save();ctx.beginPath();ctx.ellipse(2130,570,1050,550,0,0,Math.PI*2);ctx.clip();
+  const a=boundsAt(1000,state.jaw),b=boundsAt(WORLD.back,state.jaw);
+  path(p=>{p.moveTo(1000,a.top);p.lineTo(WORLD.back,b.top);p.quadraticCurveTo(2360,520,WORLD.back,b.bottom);p.lineTo(1000,a.bottom);p.closePath();},'#221e3d','#be8ea9',12);
+  for(let i=0;i<5;i++) {
+    const x=1410+i*175,wall=boundsAt(x,state.jaw);
+    path(p=>{p.moveTo(x,wall.top+9);p.quadraticCurveTo(x+95,530,x,wall.bottom-9);},null,'#ae73ac1c',8);
+  }
+  path(p=>{p.moveTo(1500,700);p.quadraticCurveTo(1870,610,2220,628);},null,'#85577f',22);
+  ctx.lineCap='round';
+  for(const arm of squidTentacles(t,state.jaw)) {
+    path(p=>{p.moveTo(...arm.a);p.lineTo(...arm.b);},null,'#a968a2',arm.radius*2);
+    path(p=>{p.moveTo(...arm.a);p.lineTo(...arm.b);},null,'#d99ab452',10);
+    const length=Math.hypot(arm.b[0]-arm.a[0],arm.b[1]-arm.a[1]);
+    for(let d=15;d<length;d+=24){const f=d/length;ellipse(arm.a[0]+(arm.b[0]-arm.a[0])*f,arm.a[1]+(arm.b[1]-arm.a[1])*f,6,4,'#efd0c2');}
+  }
+  if(!['escape','won','eaten'].includes(state.phase))drawOrb(WORLD.orbX,WORLD.orbY,t,1);
+  if(state.ink>0 && state.phase==='escape') {
+    ctx.globalAlpha=state.ink*.68;
+    for(let i=0;i<9;i++)glow(1210+i*135,510+Math.sin(i+state.time)*45,210,'#110e2dec');
+  }
+  ctx.restore();
+}
 function drawOrb(x,y,t,scale) {ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);glow(0,0,125,'#dfef8b22');glow(0,0,55,'#e5f3a53a');ellipse(0,0,24,24,'#dcecb0');ellipse(-5,-7,10,8,'#f4f9d8');ctx.strokeStyle='#e7f0b74d';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(0,0,34+Math.sin(t*2)*3,0,Math.PI*2);ctx.stroke();for(let i=0;i<4;i++){const a=t*.6+i*Math.PI/2;ellipse(Math.cos(a)*43,Math.sin(a)*43,2,2,'#ecf6c6');}ctx.restore();}
 function seabed(t) {
   path(p=>{p.moveTo(-200,1170);for(let x=-200;x<3600;x+=90)p.lineTo(x,1155+Math.sin(x*.009)*23);p.lineTo(3600,1500);p.lineTo(-200,1500);p.closePath();},'#0b2c31');
@@ -151,11 +190,11 @@ function guide() {
   if(sx>width-75||sx<75){const right=sx>width-75;sx=right?width-52:52;sy=Math.max(height*.38,Math.min(height*.6,sy));ctx.save();ctx.translate(sx,sy);ctx.strokeStyle=escape?'#f2c19c':'#d3e8ab';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(right?-6:6,-6);ctx.lineTo(right?0:0,0);ctx.lineTo(right?-6:6,6);ctx.stroke();ctx.font='9px system-ui';ctx.textAlign='center';ctx.fillStyle=escape?'#f2c19c':'#c1d9b6';ctx.fillText(escape?'OUT':'ORB',0,25);ctx.restore();}
 }
 function ui() {
-  const shark = state.mission === 2;
+  const shark = state.mission === 2, squid = state.mission === 3;
   if (previousMission !== state.mission) {
     previousMission = state.mission;
-    $('mission-name').textContent = shark ? 'MISSION 02 · THE SHARK' : 'MISSION 01 · THE GIANT FISH';
-    $('health').hidden = !shark;
+    $('mission-name').textContent = squid ? 'MISSION 03 · THE GIANT SQUID' : shark ? 'MISSION 02 · THE SHARK' : 'MISSION 01 · THE GIANT FISH';
+    $('health').hidden = state.mission === 1;
   }
   if (previousHealth !== state.health) {
     previousHealth = state.health;
@@ -164,21 +203,22 @@ function ui() {
   }
   if(previousPhase!==state.phase){
     previousPhase=state.phase;
-    const messages={approach:[shark?'Watch those teeth':'Find the light',shark?'Enter the shark’s mouth · teeth take 1 heart':'Swim into the giant fish’s mouth'],inside:['A little deeper',shark?'Stay between the teeth · touch the orb':'Touch the glowing orb on the tongue'],escape:['Time to get out!','Turn left + hold BOOST'],won:['Orb rescued','Safe in the open water'],eaten:['Gulp!','Give it another go']};
+    const messages={approach:[squid?'Watch the tentacles':shark?'Watch those teeth':'Find the light',squid?'Swim through the moving gaps · avoid the arms':shark?'Enter the shark’s mouth · teeth take 1 heart':'Swim into the giant fish’s mouth'],inside:['A little deeper',squid?'Follow the gaps to the glowing orb':shark?'Stay between the teeth · touch the orb':'Touch the glowing orb on the tongue'],escape:['Time to get out!','Turn left + hold BOOST'],won:['Orb rescued','Safe in the open water'],eaten:['Gulp!','Give it another go']};
     $('objective').textContent=messages[state.phase][0];$('hint').textContent=messages[state.phase][1];$('escape').hidden=state.phase!=='escape';
     if(state.phase==='won'||state.phase==='eaten'){
-      const won=state.phase==='won', teeth=state.deathReason==='teeth';
+      const won=state.phase==='won', teeth=state.health===0;
       $('result-symbol').textContent=won?'✦':teeth?'♡':'◉';
-      $('result-eyebrow').textContent=won?(shark?'BOTH ORBS RESCUED':'MISSION 01 COMPLETE'):'GIVE IT ANOTHER GO';
-      $('result-title').textContent=won?(shark?'Shark outsmarted!':'Orb rescued!'):teeth?'Out of health!':'You got eaten!';
-      $('result-copy').textContent=won?(shark?'Sharp teeth. Even sharper swimming.':'Next up: a shark with a much sharper smile.'):teeth?'Those teeth are sharp. Try swimming through the middle.':'That fish was hungry. Give it another go.';
+      $('result-eyebrow').textContent=won?('MISSION 0'+state.mission+' COMPLETE'):'GIVE IT ANOTHER GO';
+      $('result-title').textContent=won?(squid?'Squid outsmarted!':shark?'Shark outsmarted!':'Orb rescued!'):teeth?'Out of health!':'You got eaten!';
+      $('result-copy').textContent=won?(squid?'You found your way through the ink!':shark?'Next up: a giant squid with a few tricks up its arms.':'Next up: a shark with a much sharper smile.'):teeth?(squid?'Watch the tentacle gaps and try again.':'Those teeth are sharp. Try swimming through the middle.'):(squid?'The squid caught you. Give it another go.':'That fish was hungry. Give it another go.');
       $('retry').firstChild.textContent=won?'Play Again ':'Try again ';
-      $('next-mission').hidden=!(won && !shark);
+      $('next-mission').hidden=!(won && state.mission<3);
       $('result').hidden=false;$('controls').hidden=true;clearInput();$('retry').focus({preventScroll:true});
     }
   }
+  $('ink-warning').hidden = !state.ink || state.phase !== 'escape' || menu.open;
   $('current').hidden = !state.suction || state.phase !== 'escape' || menu.open;
-  $('seconds').textContent=state.remaining.toFixed(1);$('timer-fill').style.transform=`scaleX(${state.remaining/WORLD.escapeSeconds})`;boost.classList.toggle('active',state.boosting);
+  $('seconds').textContent=state.remaining.toFixed(1);$('timer-fill').style.transform=`scaleX(${state.remaining/state.escapeDuration})`;boost.classList.toggle('active',state.boosting);
 }
 function frame(now) {
   const dt=menu.open?0:last?Math.min((now-last)/1000,.05):0;last=now;

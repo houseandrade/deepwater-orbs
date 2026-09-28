@@ -8,11 +8,11 @@
 <meta name="description" content="Swim into a giant fish. Steal its orb. Make it out. A tiny underwater adventure for Brian and Dean.">
 <title>Deepwater Orbs</title>
 <link rel="icon" href="./icon.svg" type="image/svg+xml">
-<link id="game-styles" rel="stylesheet" href="./style.css?v=2.2.0">
+<link id="game-styles" rel="stylesheet" href="./style.css?v=2.3.0">
 </head>
 <body>
 <canvas id="ocean" aria-label="Deepwater Orbs underwater game. Swim right into the fish’s mouth to collect the glowing orb, then boost left to escape."></canvas>
-<header><div class="brand"><span class="brand-orb"></span><div>DEEPWATER ORBS<small>A LITTLE DEEPER. A LITTLE BRAVER.</small></div></div><span class="version">V2.2.0 <i></i> PLAYTEST</span></header>
+<header><div class="brand"><span class="brand-orb"></span><div>DEEPWATER ORBS<small>A LITTLE DEEPER. A LITTLE BRAVER.</small></div></div><span class="version">V2.3.0 <i></i> PLAYTEST</span></header>
 <button id="pause" type="button" aria-label="Pause game">Ⅱ <span>Pause</span></button>
 <div class="mission" aria-live="polite"><span id="mission-icon">◇</span><div><small id="mission-name">MISSION 01 · THE GIANT FISH</small><span id="objective">Find the light</span><small id="hint">Swim into the giant fish’s mouth</small></div></div>
 <div id="health" hidden aria-live="polite"><span id="hearts" aria-hidden="true">♥♥♥</span><span id="health-copy">3 / 3 health</span></div>
@@ -22,13 +22,14 @@
 <div id="result" hidden><div class="result-card"><span id="result-symbol">✦</span><p id="result-eyebrow">BACK IN THE BLUE</p><h1 id="result-title">Orb rescued!</h1><p id="result-copy">That was a close one.</p><div class="result-actions"><button id="retry">Play Again <span>↻</span></button><button id="next-mission" hidden>Next Mission →</button><button id="result-missions">Choose Mission</button></div></div></div>
 <dialog id="menu" aria-labelledby="menu-title">
 <div id="pause-panel"><p class="menu-eyebrow">TAKE A BREATHER</p><h2 id="menu-title">Paused</h2><div class="menu-actions"><button id="resume">Resume</button><button id="restart">Restart Mission</button><button id="choose-mission">Choose Mission</button><button id="refresh" title="Load the latest version and restart this mission">↻ Refresh Game</button></div></div>
-<div id="mission-panel" hidden><p class="menu-eyebrow">YOUR NEXT DIVE</p><h2 id="mission-select-title">Choose a mission</h2><div class="mission-cards"><button id="mission-1"><b>01 · The Giant Fish</b><span>Find the orb. Learn your escape.</span></button><button id="mission-2"><b>02 · The Shark</b><span>Sharp teeth. Three hearts. A powerful current.</span></button></div><button id="menu-back">← Back</button></div>
+<div id="mission-panel" hidden><p class="menu-eyebrow">YOUR NEXT DIVE</p><h2 id="mission-select-title">Choose a mission</h2><div class="mission-cards"><button id="mission-1"><b>01 · The Giant Fish</b><span>Find the orb. Learn your escape.</span></button><button id="mission-2"><b>02 · The Shark</b><span>Sharp teeth. Three hearts. A powerful current.</span></button><button id="mission-3"><b>03 · The Giant Squid</b><span>Moving tentacles. An inky escape.</span></button></div><button id="menu-back">← Back</button></div>
 </dialog>
+<div id="ink-warning" hidden aria-live="polite">INK CLOUD! <span>Follow the gaps · escape left ←</span></div>
 <div id="current" hidden aria-live="polite">SUCTION! <span>Hold BOOST toward the exit ←</span></div>
 <div id="rotate"><span>↻</span><h2>A wider ocean awaits</h2><p>Turn your device sideways to swim.</p></div>
 <script>
 // Keep refresh independent of the game so it also works if game loading fails.
-const fresh = new URL(location.href).searchParams.get('_refresh') || '2.2.0';
+const fresh = new URL(location.href).searchParams.get('_refresh') || '2.3.0';
 const assetQuery = '?v=' + encodeURIComponent(fresh);
 document.getElementById('game-styles').href = './style.css' + assetQuery;
 document.getElementById('refresh').addEventListener('click', () => {

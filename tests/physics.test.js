@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createGame, step, solid, WORLD, sharkTeeth, touchesTooth } from '../physics.js';
+import { createGame, step, solid, WORLD, sharkTeeth, touchesTooth, squidTentacles, touchesTentacle } from '../physics.js';
 function run(s,input,seconds,hz=120){for(let i=0;i<Math.round(seconds*hz);i++)step(s,input,1/hz);}
 test('analog input controls speed; release glides and eventually settles',()=>{const full=createGame(),half=createGame();run(full,{x:1},1);run(half,{x:.5},1);assert.ok(full.vx>half.vx*1.9);const x=full.x;run(full,{},.2);assert.ok(full.x>x&&full.vx>0);run(full,{},5);assert.ok(full.vx<1);});
 test('diagonal input does not exceed cardinal speed',()=>{const a=createGame(),b=createGame();run(a,{x:1},1);run(b,{x:1,y:1},1);assert.ok(Math.abs(Math.hypot(b.vx,b.vy)-a.vx)<.001);});
@@ -43,4 +43,35 @@ test('shark suction is a short inward pulse that an outward boost overcomes',()=
   assert.equal(shark.suction,1);assert.ok(shark.vx>0);assert.ok(fish.vx<0);
   step(shark,{x:-1,boost:true},1/120);assert.ok(shark.vx<0);
   shark.remaining=2.7;step(shark,{x:-1},1/120);assert.equal(shark.suction,0);
+});
+
+test('squid tentacles move and collision matches their rounded tips',()=>{
+  const a=squidTentacles(0)[0], b=squidTentacles(1)[0];
+  assert.notEqual(a.b[1],b.b[1]);assert.ok(touchesTentacle(...a.b,a));
+  assert.ok(!touchesTentacle(a.b[0]+60,a.b[1],a));
+});
+test('tentacle contact costs a heart, protects briefly, and can exhaust health',()=>{
+  const s=createGame(3);s.phase='inside';
+  const contact=()=>{const arm=squidTentacles(s.time+1/120)[0];s.x=arm.b[0];s.y=arm.b[1];step(s,{},1/120);};
+  contact();assert.equal(s.health,2);contact();assert.equal(s.health,2);
+  s.hurtTime=0;contact();s.hurtTime=0;contact();assert.equal(s.health,0);assert.equal(s.deathReason,'tentacles');
+  const retry=createGame(3);assert.equal(retry.health,3);assert.equal(retry.ink,0);assert.equal(retry.remaining,6.5);
+});
+test('squid ink is temporary and does not reuse shark suction',()=>{
+  const s=createGame(3);s.phase='escape';s.x=2020;s.remaining=5.3;
+  step(s,{},1/120);assert.ok(s.ink>0);assert.equal(s.suction,0);
+  s.remaining=3;step(s,{},1/120);assert.equal(s.ink,0);
+});
+test('steering through moving gaps permits a full-health squid escape',()=>{
+  for(const initialTime of [0,3,6]){
+    const s=createGame(3);s.time=initialTime;
+    for(let i=0;i<3600&&!['eaten','won'].includes(s.phase);i++){
+      const out=s.phase==='escape',dir=out?-1:1;
+      const gate=out?(s.x>1730?1:s.x>1370?0:null):(s.x<1500?0:s.x<1850?1:null);
+      let target=out?545:583;
+      if(gate!==null){const x=1430+gate*350,look=Math.max(0,Math.abs(x-s.x)/(out?460:215));target=540+Math.sin((s.time+look)*.9+gate*2)*70;}
+      step(s,{x:dir,y:Math.max(-.65,Math.min(.65,(target-s.y)/65-s.vy/350)),boost:out},1/120);
+    }
+    assert.equal(s.phase,'won');assert.equal(s.health,3);
+  }
 });

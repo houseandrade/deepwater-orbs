@@ -1,4 +1,4 @@
-# Deepwater Orbs · V2.2
+# Deepwater Orbs · V2.3
 
 A small, mobile-first 2D browser game for testing swimming and spatial feel.
 
@@ -8,9 +8,9 @@ Open **Pause → Refresh Game** in the upper right to load the latest game files
 
 Turn your iPhone or iPad sideways. Drag the left joystick to swim; its distance from the center controls swimming strength. Let go to glide. Hold BOOST with your other thumb for more speed. On a computer, use WASD or arrow keys and hold Space to boost.
 
-Swim right into the stationary giant fish's mouth, past its teeth, and touch the glowing orb on its tongue. Turn left and hold BOOST to escape before the mouth shuts. Getting eaten gives you an immediate retry; escaping offers **Play Again**, **Next Mission**, and **Choose Mission**. Mission 2 has sharp teeth and three hearts. Touching a tooth costs one heart with 1.2 seconds of protection between hits. Running out of health retries the current mission with full health. Escape the shark to finish both missions and replay it. After pickup, the shark briefly pulls inward: watch the current bubbles and hold BOOST toward the exit.
+Swim right into the stationary giant fish's mouth, past its teeth, and touch the glowing orb on its tongue. Turn left and hold BOOST to escape before the mouth shuts. Getting eaten gives you an immediate retry; escaping offers **Play Again**, **Next Mission**, and **Choose Mission**. Mission 2 has sharp teeth and three hearts. Touching a tooth costs one heart with 1.2 seconds of protection between hits. Running out of health retries the current mission with full health. Escape the shark to replay it or continue to the giant squid. After pickup, the shark briefly pulls inward: watch the current bubbles and hold BOOST toward the exit.
 
-For a quick shark playtest, open https://houseandrade.github.io/deepwater-orbs/?mission=2. Normal play starts with the original fish. **Pause → Choose Mission** lets you jump directly to either mission, with no unlocking required. Menus pause movement, tooth damage, suction, and the escape clock. Resume keeps your dive; Restart Mission resets it. Mission changes update the URL so Refresh restarts the selected mission. Keyboard players can open Pause with Escape.
+For a quick shark playtest, open https://houseandrade.github.io/deepwater-orbs/?mission=2. Normal play starts with the original fish. **Pause → Choose Mission** lets you jump directly to any mission, with no unlocking required. Menus pause movement, tooth damage, suction, and the escape clock. Resume keeps your dive; Restart Mission resets it. Mission changes update the URL so Refresh restarts the selected mission. Keyboard players can open Pause with Escape.
 
 ## What V2 tests
 
@@ -20,7 +20,7 @@ For a quick shark playtest, open https://houseandrade.github.io/deepwater-orbs/?
 - A 4.5-second escape, closing jaws, success, getting eaten, and retry.
 - Landscape layouts, iOS safe areas, pointer cancellation, and pausing when the page is hidden or the device turns portrait.
 
-The two missions run in sequence, with one stationary boss at a time. There are no dependencies, asset downloads, upgrades, extra enemies, or powers. Artwork is drawn directly in Canvas 2D.
+The three missions run in sequence, with one stationary boss at a time. There are no dependencies, asset downloads, upgrades, extra enemies, or powers. Artwork is drawn directly in Canvas 2D.
 
 ## Run locally
 
@@ -49,3 +49,13 @@ Real Safari performance, thumb comfort, and difficulty still need Brian and Dean
 - `tests/`: dependency-free automated checks.
 
 The earlier conversation supplied the behavior reference. Its original downloadable prototype was not available, so V2 implements the agreed loop anew.
+
+## Mission 3: The Giant Squid
+
+Select **Pause → Choose Mission → The Giant Squid**, or advance after the shark. Direct playtest link: https://houseandrade.github.io/deepwater-orbs/?mission=3.
+
+Two pairs of moving interior tentacles create shifting gaps. Contact costs one of three hearts, with the same 1.2-second protection as the shark. Follow the gaps instead of holding straight right. The capsule shapes used for collision are also drawn on screen. Outer curled arms decorate the silhouette; the brighter interior arms are the hazards.
+
+Orb pickup starts a 6.5-second escape. An ink cloud builds and clears over 2.4 seconds; it dims the interior but keeps the swimmer, controls, timer, and exit direction readable. The squid does not use the shark's suction pulse. Pause freezes tentacles, ink, health protection, and the escape clock. Replay and retry keep Mission 3 selected and reset health.
+
+Automated checks include moving-arm contact, damage protection, temporary ink, direct selection, progression from the shark, and full-health escapes at several tentacle timings. Phone/iPad playtesting is still the authority on difficulty and thumb comfort.

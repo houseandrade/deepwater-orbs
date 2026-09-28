@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
-import { WORLD, createGame, step, boundsAt, sharkTeeth } from '../physics.js';
+import { WORLD, createGame, step, boundsAt, sharkTeeth, squidTentacles } from '../physics.js';
 const source=readFileSync(new URL('../game.js',import.meta.url),'utf8').replace(/^const .*await import.*\n/,'');
 function harness(mission = 1){
   const gradient={addColorStop(){}};
@@ -20,7 +20,7 @@ function harness(mission = 1){
   const elements=new Map();const get=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
   const doc=new Element();doc.hidden=false;doc.getElementById=get;doc.querySelector=selector=>get(selector.slice(1));
   const win=new Element();let callback;let now=100;
-  vm.runInNewContext(source,{history:{replaceState(){}},URL,location:{href:'https://example.test/?mission='+mission},WORLD,createGame,step,boundsAt,sharkTeeth,document:doc,window:win,innerWidth:844,innerHeight:390,devicePixelRatio:1,matchMedia:()=>({matches:true}),requestAnimationFrame:fn=>callback=fn,Math,Set});
+  vm.runInNewContext(source,{history:{replaceState(){}},URL,location:{href:'https://example.test/?mission='+mission},WORLD,createGame,step,boundsAt,sharkTeeth,squidTentacles,document:doc,window:win,innerWidth:844,innerHeight:390,devicePixelRatio:1,matchMedia:()=>({matches:true}),requestAnimationFrame:fn=>callback=fn,Math,Set});
   function advance(seconds){for(let i=0;i<seconds*120;i++){now+=1000/120;callback(now);}}
   advance(.05);
   return {get,doc,win,advance,key:(code,type='keydown')=>win.emit(type,{code})};
@@ -81,4 +81,16 @@ test('Play Again keeps the first mission while Next Mission remains separate',()
   const h=harness();h.key('ArrowRight');h.advance(7.7);h.key('ArrowRight','keyup');h.key('ArrowLeft');h.key('Space');h.advance(3.6);
   assert.equal(h.get('next-mission').hidden,false);h.get('retry').emit('click');h.advance(.1);
   assert.equal(h.get('objective').textContent,'Find the light');
+});
+
+test('squid can be selected directly and restart stays on the squid',()=>{
+  const h=harness();h.get('pause').emit('click');h.get('choose-mission').emit('click');h.get('mission-3').emit('click');h.advance(.1);
+  assert.equal(h.get('objective').textContent,'Watch the tentacles');assert.equal(h.get('seconds').textContent,'6.5');
+  h.get('pause').emit('click');h.get('restart').emit('click');h.advance(.1);
+  assert.equal(h.get('mission-name').textContent,'MISSION 03 · THE GIANT SQUID');assert.equal(h.get('health-copy').textContent,'3 / 3 health');
+});
+test('next mission after beating shark starts the squid',()=>{
+  const h=harness(2);h.key('ArrowRight');h.advance(7.7);h.key('ArrowRight','keyup');h.key('ArrowLeft');h.key('Space');h.advance(3.6);
+  assert.equal(h.get('next-mission').hidden,false);h.get('next-mission').emit('click');h.advance(.1);
+  assert.equal(h.get('objective').textContent,'Watch the tentacles');
 });
