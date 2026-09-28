@@ -35,3 +35,12 @@ test('shark has a clear route to the orb and a successful boosted escape',()=>{
   const s=createGame(2);run(s,{x:1},7.6);assert.equal(s.phase,'escape');
   run(s,{x:-1,boost:true},3.5);assert.equal(s.phase,'won');assert.equal(s.health,3);
 });
+
+test('shark suction is a short inward pulse that an outward boost overcomes',()=>{
+  const shark=createGame(2),fish=createGame(1);
+  for(const s of [shark,fish]){s.x=1900;s.phase='escape';s.remaining=4;}
+  step(shark,{x:-1},1/120);step(fish,{x:-1},1/120);
+  assert.equal(shark.suction,1);assert.ok(shark.vx>0);assert.ok(fish.vx<0);
+  step(shark,{x:-1,boost:true},1/120);assert.ok(shark.vx<0);
+  shark.remaining=2.7;step(shark,{x:-1},1/120);assert.equal(shark.suction,0);
+});

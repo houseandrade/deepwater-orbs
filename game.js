@@ -2,6 +2,7 @@ const { WORLD, createGame, step, boundsAt, sharkTeeth } = await import('./physic
 const canvas = document.querySelector('#ocean'), ctx = canvas.getContext('2d');
 const $ = id => document.getElementById(id);
 const joystick = $('joystick'), stick = $('stick'), boost = $('boost');
+const menu = $('menu');
 const input = { x: 0, y: 0, boost: false }, keys = new Set(), boostPointers = new Set();
 let state = createGame(new URL(location.href).searchParams.get('mission') === '2' ? 2 : 1), width = 0, height = 0, dpr = 1, camera = { x: 855, y: 557, scale: 1 }, last = 0, accumulator = 0, stickPointer = null, previousPhase = '', previousHealth = -1, previousMission = 0, paused = false;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -25,13 +26,40 @@ function releaseStick(e) { if (e.pointerId !== stickPointer) return; stickPointe
 for (const type of ['pointerup','pointercancel','lostpointercapture']) joystick.addEventListener(type, releaseStick);
 boost.addEventListener('pointerdown', e => { e.preventDefault(); boostPointers.add(e.pointerId); boost.setPointerCapture(e.pointerId); });
 for (const type of ['pointerup','pointercancel','lostpointercapture']) boost.addEventListener(type, e => boostPointers.delete(e.pointerId));
-window.addEventListener('keydown', e => { if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','KeyW','KeyA','KeyS','KeyD'].includes(e.code)) { if (e.code !== 'Space' || e.target.tagName !== 'BUTTON') { e.preventDefault(); keys.add(e.code); } } });
+window.addEventListener('keydown', e => { if(e.code === 'Escape' && !menu.open && state.phase !== 'won' && state.phase !== 'eaten'){e.preventDefault();openMenu();return;} if(menu.open || state.phase === 'won' || state.phase === 'eaten') return; if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','KeyW','KeyA','KeyS','KeyD'].includes(e.code)) { if (e.code !== 'Space' || e.target.tagName !== 'BUTTON') { e.preventDefault(); keys.add(e.code); } } });
 window.addEventListener('keyup', e => keys.delete(e.code));
 window.addEventListener('blur', clearInput);
 document.addEventListener('visibilitychange', () => { clearInput(); last = 0; accumulator = 0; });
 window.addEventListener('resize', resize);
 window.addEventListener('contextmenu', e => e.preventDefault());
-$('retry').addEventListener('click', () => { state = createGame(state.phase === 'won' ? (state.mission === 1 ? 2 : 1) : state.mission); camera.x = 855; camera.y = 557; camera.scale = height / Math.max(900,1750*height/width); bubbles = []; previousPhase = ''; clearInput(); $('result').hidden = true; $('controls').hidden = false; $('retry').blur(); last = 0; accumulator = 0; });
+function startMission(mission) {
+  state = createGame(mission);
+  const url = new URL(location.href);url.searchParams.set('mission',state.mission);history.replaceState(null,'',url.href);
+  camera.x = 855;camera.y = 557;camera.scale = height / Math.max(900,1750*height/width);
+  bubbles = [];previousPhase = '';clearInput();$('result').hidden = true;$('controls').hidden = false;
+  if(menu.open) menu.close();
+  $('retry').blur();$('pause').blur();last = 0;accumulator = 0;
+}
+function showMissionPanel(show) {
+  menu.setAttribute('aria-labelledby',show ? 'mission-select-title' : 'menu-title');
+  $('pause-panel').hidden = show;$('mission-panel').hidden = !show;
+  (show ? $('mission-1') : $('resume')).focus();
+}
+function openMenu(select = false) {
+  clearInput();accumulator = 0;menu.showModal();showMissionPanel(select);
+}
+$('pause').addEventListener('click',()=>openMenu());
+$('resume').addEventListener('click',()=>menu.close());
+$('restart').addEventListener('click',()=>startMission(state.mission));
+$('choose-mission').addEventListener('click',()=>showMissionPanel(true));
+$('result-missions').addEventListener('click',()=>openMenu(true));
+$('menu-back').addEventListener('click',()=>showMissionPanel(false));
+$('mission-1').addEventListener('click',()=>startMission(1));
+$('mission-2').addEventListener('click',()=>startMission(2));
+menu.addEventListener('close',()=>{clearInput();last=0;accumulator=0;});
+$('retry').addEventListener('click',()=>startMission(state.mission));
+$('next-mission').addEventListener('click',()=>startMission(2));
+
 function ellipse(x,y,rx,ry,color) { ctx.fillStyle=color; ctx.beginPath(); ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2); ctx.fill(); }
 function path(points,color,stroke,line=1) { ctx.beginPath(); points(ctx); if(color){ctx.fillStyle=color;ctx.fill();} if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=line;ctx.stroke();} }
 function glow(x,y,r,color) { const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color);g.addColorStop(1,'transparent');ellipse(x,y,r,r,g); }
@@ -102,7 +130,7 @@ function seabed(t) {
 }
 function swimmer(t) {
   const angle=Math.atan2(state.facingY,state.facingX), speed=Math.hypot(state.vx,state.vy);
-  if(!paused&&!document.hidden&&state.phase!=='won'&&state.phase!=='eaten'&&!reducedMotion&&speed>50&&Math.random()<.35){bubbles.push({x:state.x-Math.cos(angle)*30,y:state.y-Math.sin(angle)*30,life:1,r:2+Math.random()*4});}
+  if(!paused&&!menu.open&&!document.hidden&&state.phase!=='won'&&state.phase!=='eaten'&&!reducedMotion&&speed>50&&Math.random()<.35){bubbles.push({x:state.x-Math.cos(angle)*30,y:state.y-Math.sin(angle)*30,life:1,r:2+Math.random()*4});}
   ctx.save();
   if(state.hurtTime>0) ctx.globalAlpha=reducedMotion ? .65 : .45+.4*Math.abs(Math.sin(state.time*14));
   ctx.translate(state.x,state.y);ctx.rotate(angle);
@@ -144,15 +172,17 @@ function ui() {
       $('result-eyebrow').textContent=won?(shark?'BOTH ORBS RESCUED':'MISSION 01 COMPLETE'):'GIVE IT ANOTHER GO';
       $('result-title').textContent=won?(shark?'Shark outsmarted!':'Orb rescued!'):teeth?'Out of health!':'You got eaten!';
       $('result-copy').textContent=won?(shark?'Sharp teeth. Even sharper swimming.':'Next up: a shark with a much sharper smile.'):teeth?'Those teeth are sharp. Try swimming through the middle.':'That fish was hungry. Give it another go.';
-      $('retry').firstChild.textContent=won?(shark?'Play both again ':'Next: the shark '):'Try again ';
+      $('retry').firstChild.textContent=won?'Play Again ':'Try again ';
+      $('next-mission').hidden=!(won && !shark);
       $('result').hidden=false;$('controls').hidden=true;clearInput();$('retry').focus({preventScroll:true});
     }
   }
+  $('current').hidden = !state.suction || state.phase !== 'escape' || menu.open;
   $('seconds').textContent=state.remaining.toFixed(1);$('timer-fill').style.transform=`scaleX(${state.remaining/WORLD.escapeSeconds})`;boost.classList.toggle('active',state.boosting);
 }
 function frame(now) {
-  const dt=last?Math.min((now-last)/1000,.05):0;last=now;
-  const playing=!paused&&!document.hidden;
+  const dt=menu.open?0:last?Math.min((now-last)/1000,.05):0;last=now;
+  const playing=!paused&&!menu.open&&!document.hidden;
   if(playing){const keyboardX=Number(keys.has('ArrowRight')||keys.has('KeyD'))-Number(keys.has('ArrowLeft')||keys.has('KeyA'));const keyboardY=Number(keys.has('ArrowDown')||keys.has('KeyS'))-Number(keys.has('ArrowUp')||keys.has('KeyW'));input.boost=boostPointers.size>0||keys.has('Space');const movement={x:stickPointer!==null?input.x:keyboardX,y:stickPointer!==null?input.y:keyboardY,boost:input.boost};accumulator+=dt;while(accumulator>=1/120){step(state,movement,1/120);accumulator-=1/120;}}
   const depth=Math.max(0,Math.min(1,(state.x-900)/900));const targetScale=height/(Math.max(900,1750*height/width)-depth*175);const smoothing=1-Math.exp(-dt*3);
   camera.scale+=(targetScale-camera.scale)*smoothing;
@@ -160,6 +190,15 @@ function frame(now) {
   const targetX=Math.max(width/(2*camera.scale)-50,state.x+lookAhead);
   camera.x+=(targetX-camera.x)*smoothing;camera.y+=(state.y-camera.y)*(1-Math.exp(-dt*2.3));
   ctx.setTransform(dpr,0,0,dpr,0,0);background(state.time);ctx.save();ctx.translate(width/2,height/2);ctx.scale(camera.scale,camera.scale);ctx.translate(-camera.x,-camera.y);fish(state.time);seabed(state.time);
+  if(state.suction && state.phase==='escape') {
+    // Bubbles and streaks travel right, into the shark, making the force legible.
+    for(let i=0;i<26;i++) {
+      const x=1090+(i*53+state.time*390)%1120,y=490+(i*37)%85;
+      ctx.strokeStyle='#c6eae882';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.arc(x,y,2+i%3,0,Math.PI*2);ctx.stroke();
+      if(!reducedMotion) path(p=>{p.moveTo(x-24,y);p.lineTo(x-6,y);},null,'#b0dcda30',2);
+    }
+  }
   bubbles=bubbles.filter(b=>b.life>0);for(const b of bubbles){if(playing){b.life-=dt*.85;b.y-=dt*25;}ctx.strokeStyle=`rgba(170,219,213,${Math.max(0,b.life)*.3})`;ctx.lineWidth=1;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.stroke();}swimmer(state.time);ctx.restore();guide();ui();requestAnimationFrame(frame);
 }
 resize();camera.scale=height/Math.max(900,1750*height/width);requestAnimationFrame(frame);

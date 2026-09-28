@@ -1,7 +1,7 @@
 // World units and seconds. The fish never changes position; only its jaws close.
 export const WORLD = { width: 3400, height: 1280, mouth: 1080, back: 2290, orbX: 2080, orbY: 583, escapeSeconds: 4.5 };
 export function createGame(mission = 1) {
-  return { mission: mission === 2 ? 2 : 1, health: 3, hurtTime: 0, deathReason: '', x: 460, y: 555, vx: 0, vy: 0, facingX: 1, facingY: 0, phase: 'approach', remaining: WORLD.escapeSeconds, time: 0, boosting: false, jaw: 0 };
+  return { mission: mission === 2 ? 2 : 1, health: 3, hurtTime: 0, suction: 0, deathReason: '', x: 460, y: 555, vx: 0, vy: 0, facingX: 1, facingY: 0, phase: 'approach', remaining: WORLD.escapeSeconds, time: 0, boosting: false, jaw: 0 };
 }
 export function boundsAt(x, jaw = 0) {
   const depth = Math.max(0, x - WORLD.mouth);
@@ -66,7 +66,10 @@ export function step(s, input, dt) {
   const acceleration = s.boosting ? 1410 : 590;
   const ax = s.boosting && !active ? s.facingX : ix;
   const ay = s.boosting && !active ? s.facingY : iy;
-  s.vx = (s.vx + ax * acceleration * dt) * Math.exp(-drag * dt);
+  // A short readable pulse pulls inward; a held outward boost overcomes it.
+  const escapeAge = WORLD.escapeSeconds - s.remaining;
+  s.suction = s.mission === 2 && s.phase === 'escape' && escapeAge >= .35 && escapeAge < 1.65 ? 1 : 0;
+  s.vx = (s.vx + (ax * acceleration + s.suction * 650) * dt) * Math.exp(-drag * dt);
   s.vy = (s.vy + ay * acceleration * dt) * Math.exp(-drag * dt);
   // Small swept increments prevent a boost from tunnelling through the fish.
   const count = Math.max(1, Math.ceil(Math.hypot(s.vx, s.vy) * dt / 7));
