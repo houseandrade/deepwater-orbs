@@ -1,9 +1,9 @@
-const { WORLD, createGame, step, boundsAt } = await import('./physics.js' + new URL(import.meta.url).search);
+const { WORLD, createGame, step, boundsAt, sharkTeeth } = await import('./physics.js' + new URL(import.meta.url).search);
 const canvas = document.querySelector('#ocean'), ctx = canvas.getContext('2d');
 const $ = id => document.getElementById(id);
 const joystick = $('joystick'), stick = $('stick'), boost = $('boost');
 const input = { x: 0, y: 0, boost: false }, keys = new Set(), boostPointers = new Set();
-let state = createGame(), width = 0, height = 0, dpr = 1, camera = { x: 855, y: 557, scale: 1 }, last = 0, accumulator = 0, stickPointer = null, previousPhase = '', paused = false;
+let state = createGame(new URL(location.href).searchParams.get('mission') === '2' ? 2 : 1), width = 0, height = 0, dpr = 1, camera = { x: 855, y: 557, scale: 1 }, last = 0, accumulator = 0, stickPointer = null, previousPhase = '', previousHealth = -1, previousMission = 0, paused = false;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let bubbles = [];
 function resize() {
@@ -31,7 +31,7 @@ window.addEventListener('blur', clearInput);
 document.addEventListener('visibilitychange', () => { clearInput(); last = 0; accumulator = 0; });
 window.addEventListener('resize', resize);
 window.addEventListener('contextmenu', e => e.preventDefault());
-$('retry').addEventListener('click', () => { state = createGame(); camera.x = 855; camera.y = 557; camera.scale = height / Math.max(900,1750*height/width); bubbles = []; previousPhase = ''; clearInput(); $('result').hidden = true; $('controls').hidden = false; $('retry').blur(); last = 0; accumulator = 0; });
+$('retry').addEventListener('click', () => { state = createGame(state.phase === 'won' ? (state.mission === 1 ? 2 : 1) : state.mission); camera.x = 855; camera.y = 557; camera.scale = height / Math.max(900,1750*height/width); bubbles = []; previousPhase = ''; clearInput(); $('result').hidden = true; $('controls').hidden = false; $('retry').blur(); last = 0; accumulator = 0; });
 function ellipse(x,y,rx,ry,color) { ctx.fillStyle=color; ctx.beginPath(); ctx.ellipse(x,y,rx,ry,0,0,Math.PI*2); ctx.fill(); }
 function path(points,color,stroke,line=1) { ctx.beginPath(); points(ctx); if(color){ctx.fillStyle=color;ctx.fill();} if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=line;ctx.stroke();} }
 function glow(x,y,r,color) { const g=ctx.createRadialGradient(x,y,0,x,y,r);g.addColorStop(0,color);g.addColorStop(1,'transparent');ellipse(x,y,r,r,g); }
@@ -44,19 +44,30 @@ function background(t) {
   for(let i=0;i<65;i++){let x=((i*173.91-camera.x*.19)%(width+40)+width+40)%(width+40)-20;let y=((i*97.73-t*(3+i%5))%(height+30)+height+30)%(height+30)-15;ellipse(x,y,i%7===0?1.6:.8,i%7===0?1.6:.8,'#98d5cd38');}
 }
 function fish(t) {
+  const shark = state.mission === 2;
   // One fixed, enormous silhouette, with a cutaway mouth in the same world coordinates.
   path(p=>{p.moveTo(2920,520);p.bezierCurveTo(3160,280,3290,260,3240,470);p.quadraticCurveTo(3195,580,3260,760);p.quadraticCurveTo(3150,865,2910,650);p.closePath();},'#285963','#39717a',5);
-  path(p=>{p.moveTo(1690,90);p.quadraticCurveTo(2180,-155,2610,100);p.lineTo(2400,230);p.closePath();},'#285560','#3a6b72',4);
-  const body=ctx.createLinearGradient(1500,30,1900,1120);body.addColorStop(0,'#467979');body.addColorStop(.35,'#315f68');body.addColorStop(.75,'#234a58');body.addColorStop(1,'#153644');
+  if (shark) path(p=>{p.moveTo(1670,125);p.lineTo(2000,-170);p.lineTo(2100,70);p.lineTo(2460,125);p.closePath();},'#566e7b','#77919c',4);
+  else path(p=>{p.moveTo(1690,90);p.quadraticCurveTo(2180,-155,2610,100);p.lineTo(2400,230);p.closePath();},'#285560','#3a6b72',4);
+  const body=ctx.createLinearGradient(1500,30,1900,1120);body.addColorStop(0,shark?'#788e9b':'#467979');body.addColorStop(.35,shark?'#4d677d':'#315f68');body.addColorStop(.75,shark?'#9bb3b8':'#234a58');body.addColorStop(1,shark?'#c1cfc9':'#153644');
   ellipse(2130,570,1050,550,body);
   ctx.save();ctx.beginPath();ctx.ellipse(2130,570,1046,545,0,0,Math.PI*2);ctx.clip();
-  for(let row=0;row<9;row++)for(let col=0;col<16;col++){let x=1350+col*122+(row%2)*60,y=90+row*126;ctx.beginPath();ctx.arc(x,y,49,.1,2.8);ctx.strokeStyle='#98c4ad0c';ctx.lineWidth=3;ctx.stroke();}
+  if (!shark) for(let row=0;row<9;row++)for(let col=0;col<16;col++){let x=1350+col*122+(row%2)*60,y=90+row*126;ctx.beginPath();ctx.arc(x,y,49,.1,2.8);ctx.strokeStyle='#98c4ad0c';ctx.lineWidth=3;ctx.stroke();}
   glow(1480,270,400,'#c3ddb817');ctx.restore();
   // Gills and a quiet pectoral fin establish the size of the creature.
-  for(let i=0;i<3;i++)path(p=>{p.moveTo(2460+i*60,390);p.quadraticCurveTo(2540+i*65,590,2460+i*60,760);},null,'#132f3b66',13);
-  path(p=>{p.moveTo(2520,660);p.quadraticCurveTo(2900,720,2710,975);p.quadraticCurveTo(2520,900,2470,710);},'#275561','#48778055',4);
-  const eyeX=1430,eyeY=218;glow(eyeX,eyeY,100,'#c6dfa815');ellipse(eyeX,eyeY,63,60,'#224651');ellipse(eyeX,eyeY,44,44,'#c1c79b');ellipse(eyeX-8,eyeY+3,18,28,'#132e39');ellipse(eyeX-18,eyeY-13,7,7,'#f1edc8');
-  path(p=>{p.moveTo(1365,160);p.quadraticCurveTo(1430,126,1498,165);},null,'#648983',13);
+  for(let i=0;i<(shark?5:3);i++)path(p=>{p.moveTo(2460+i*60,390);p.quadraticCurveTo(2540+i*65,590,2460+i*60,760);},null,'#132f3b66',13);
+  if(shark) path(p=>{p.moveTo(2440,680);p.lineTo(2810,1050);p.lineTo(2520,920);p.lineTo(2350,710);p.closePath();},'#496477','#95acb655',4);
+  else path(p=>{p.moveTo(2520,660);p.quadraticCurveTo(2900,720,2710,975);p.quadraticCurveTo(2520,900,2470,710);},'#275561','#48778055',4);
+  const eyeX=1430,eyeY=218;
+  if (shark) {
+    ellipse(eyeX,eyeY,48,35,'#32485d');
+    ellipse(eyeX-5,eyeY,30,26,'#101e30');
+    ellipse(eyeX-14,eyeY-9,7,5,'#c6ebec');
+    path(p=>{p.moveTo(1375,175);p.lineTo(1485,202);},null,'#364d61',12);
+  } else {
+    glow(eyeX,eyeY,100,'#c6dfa815');ellipse(eyeX,eyeY,63,60,'#224651');ellipse(eyeX,eyeY,44,44,'#c1c79b');ellipse(eyeX-8,eyeY+3,18,28,'#132e39');ellipse(eyeX-18,eyeY-13,7,7,'#f1edc8');
+    path(p=>{p.moveTo(1365,160);p.quadraticCurveTo(1430,126,1498,165);},null,'#648983',13);
+  }
   // Keep the entire cutaway inside the same silhouette used for the body.
   // The opening now follows the fish's curved face instead of drawing a
   // rectangular mouth in front of it. This also contains the closing jaws.
@@ -72,7 +83,11 @@ function fish(t) {
   const tongue=ctx.createLinearGradient(0,580,0,760);tongue.addColorStop(0,'#ad6b7e');tongue.addColorStop(.3,'#80546c');tongue.addColorStop(1,'#49394f');
   path(p=>{p.moveTo(1110,boundsAt(1110,state.jaw).bottom-8);p.bezierCurveTo(1500,690,1810,585,2100,620);p.quadraticCurveTo(2260,604,2287,b.bottom-8);p.bezierCurveTo(1920,b.bottom+40,1450,boundsAt(1450,state.jaw).bottom-4,1110,boundsAt(1110,state.jaw).bottom-8);p.closePath();},tongue);
   path(p=>{p.moveTo(1440,688);p.quadraticCurveTo(1800,625,2040,634);},null,'#db96a04d',3);
-  for(let i=0;i<9;i++){const x=1105+i*115,wall=boundsAt(x,state.jaw),len= i<3?48:30;
+  if (shark) {
+    for (const tooth of sharkTeeth(state.jaw)) {
+      path(p=>{p.moveTo(...tooth[0]);p.lineTo(...tooth[1]);p.lineTo(...tooth[2]);p.closePath();},'#edf2de','#9fb5ba',1.5);
+    }
+  } else for(let i=0;i<9;i++){const x=1105+i*115,wall=boundsAt(x,state.jaw),len= i<3?48:30;
     path(p=>{p.moveTo(x,wall.top+3);p.lineTo(x+20,wall.top+len);p.quadraticCurveTo(x+37,wall.top+25,x+40,wall.top+5);p.closePath();},'#b3c3ae');
     if(i<4)path(p=>{p.moveTo(x,wall.bottom-5);p.lineTo(x+22,wall.bottom-35);p.lineTo(x+41,wall.bottom-7);p.closePath();},'#91aa9f');
   }
@@ -88,7 +103,9 @@ function seabed(t) {
 function swimmer(t) {
   const angle=Math.atan2(state.facingY,state.facingX), speed=Math.hypot(state.vx,state.vy);
   if(!paused&&!document.hidden&&state.phase!=='won'&&state.phase!=='eaten'&&!reducedMotion&&speed>50&&Math.random()<.35){bubbles.push({x:state.x-Math.cos(angle)*30,y:state.y-Math.sin(angle)*30,life:1,r:2+Math.random()*4});}
-  ctx.save();ctx.translate(state.x,state.y);ctx.rotate(angle);
+  ctx.save();
+  if(state.hurtTime>0) ctx.globalAlpha=reducedMotion ? .65 : .45+.4*Math.abs(Math.sin(state.time*14));
+  ctx.translate(state.x,state.y);ctx.rotate(angle);
   glow(6,0,75,'#b7e9d90d');
   const kick=Math.sin(t*(state.boosting?20:10))*(speed>30?7:2);
   path(p=>{p.moveTo(-15,-5);p.lineTo(-35,-8+kick);p.lineTo(-48,-15+kick);p.lineTo(-53,-5+kick);p.lineTo(-33,1);p.lineTo(-12,5);},'#e2c483');
@@ -106,8 +123,31 @@ function guide() {
   if(sx>width-75||sx<75){const right=sx>width-75;sx=right?width-52:52;sy=Math.max(height*.38,Math.min(height*.6,sy));ctx.save();ctx.translate(sx,sy);ctx.strokeStyle=escape?'#f2c19c':'#d3e8ab';ctx.lineWidth=1.4;ctx.beginPath();ctx.moveTo(right?-6:6,-6);ctx.lineTo(right?0:0,0);ctx.lineTo(right?-6:6,6);ctx.stroke();ctx.font='9px system-ui';ctx.textAlign='center';ctx.fillStyle=escape?'#f2c19c':'#c1d9b6';ctx.fillText(escape?'OUT':'ORB',0,25);ctx.restore();}
 }
 function ui() {
-  if(previousPhase!==state.phase){previousPhase=state.phase;const messages={approach:['Find the light','Swim into the giant fish’s mouth'],inside:['A little deeper','Touch the glowing orb on the tongue'],escape:['Time to get out!','Turn left + hold BOOST'],won:['Orb rescued','Safe in the open water'],eaten:['Gulp!','That fish was hungry']};$('objective').textContent=messages[state.phase][0];$('hint').textContent=messages[state.phase][1];$('escape').hidden=state.phase!=='escape';
-    if(state.phase==='won'||state.phase==='eaten'){const won=state.phase==='won';$('result-symbol').textContent=won?'✦':'◉';$('result-eyebrow').textContent=won?'BACK IN THE BLUE':'A LITTLE TOO DEEP';$('result-title').textContent=won?'Orb rescued!':'You got eaten!';$('result-copy').textContent=won?'One brave swimmer. One very surprised fish.':'That fish was hungry. Give it another go.';$('retry').firstChild.textContent=won?'Dive again ':'Try again ';$('result').hidden=false;$('controls').hidden=true;clearInput();$('retry').focus({preventScroll:true});}}
+  const shark = state.mission === 2;
+  if (previousMission !== state.mission) {
+    previousMission = state.mission;
+    $('mission-name').textContent = shark ? 'MISSION 02 · THE SHARK' : 'MISSION 01 · THE GIANT FISH';
+    $('health').hidden = !shark;
+  }
+  if (previousHealth !== state.health) {
+    previousHealth = state.health;
+    $('hearts').textContent = '♥'.repeat(state.health) + '♡'.repeat(3 - state.health);
+    $('health-copy').textContent = state.health + ' / 3 health';
+  }
+  if(previousPhase!==state.phase){
+    previousPhase=state.phase;
+    const messages={approach:[shark?'Watch those teeth':'Find the light',shark?'Enter the shark’s mouth · teeth take 1 heart':'Swim into the giant fish’s mouth'],inside:['A little deeper',shark?'Stay between the teeth · touch the orb':'Touch the glowing orb on the tongue'],escape:['Time to get out!','Turn left + hold BOOST'],won:['Orb rescued','Safe in the open water'],eaten:['Gulp!','Give it another go']};
+    $('objective').textContent=messages[state.phase][0];$('hint').textContent=messages[state.phase][1];$('escape').hidden=state.phase!=='escape';
+    if(state.phase==='won'||state.phase==='eaten'){
+      const won=state.phase==='won', teeth=state.deathReason==='teeth';
+      $('result-symbol').textContent=won?'✦':teeth?'♡':'◉';
+      $('result-eyebrow').textContent=won?(shark?'BOTH ORBS RESCUED':'MISSION 01 COMPLETE'):'GIVE IT ANOTHER GO';
+      $('result-title').textContent=won?(shark?'Shark outsmarted!':'Orb rescued!'):teeth?'Out of health!':'You got eaten!';
+      $('result-copy').textContent=won?(shark?'Sharp teeth. Even sharper swimming.':'Next up: a shark with a much sharper smile.'):teeth?'Those teeth are sharp. Try swimming through the middle.':'That fish was hungry. Give it another go.';
+      $('retry').firstChild.textContent=won?(shark?'Play both again ':'Next: the shark '):'Try again ';
+      $('result').hidden=false;$('controls').hidden=true;clearInput();$('retry').focus({preventScroll:true});
+    }
+  }
   $('seconds').textContent=state.remaining.toFixed(1);$('timer-fill').style.transform=`scaleX(${state.remaining/WORLD.escapeSeconds})`;boost.classList.toggle('active',state.boosting);
 }
 function frame(now) {

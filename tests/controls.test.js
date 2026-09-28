@@ -4,9 +4,9 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
-import { WORLD, createGame, step, boundsAt } from '../physics.js';
+import { WORLD, createGame, step, boundsAt, sharkTeeth } from '../physics.js';
 const source=readFileSync(new URL('../game.js',import.meta.url),'utf8').replace(/^const .*await import.*\n/,'');
-function harness(){
+function harness(mission = 1){
   const gradient={addColorStop(){}};
   const ctx=new Proxy({}, {get:(o,k)=>o[k]??(()=>gradient),set:(o,k,v)=>(o[k]=v,true)});
   class Element {
@@ -18,7 +18,7 @@ function harness(){
   const elements=new Map();const get=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
   const doc=new Element();doc.hidden=false;doc.getElementById=get;doc.querySelector=selector=>get(selector.slice(1));
   const win=new Element();let callback;let now=100;
-  vm.runInNewContext(source,{WORLD,createGame,step,boundsAt,document:doc,window:win,innerWidth:844,innerHeight:390,devicePixelRatio:1,matchMedia:()=>({matches:true}),requestAnimationFrame:fn=>callback=fn,Math,Set});
+  vm.runInNewContext(source,{URL,location:{href:'https://example.test/?mission='+mission},WORLD,createGame,step,boundsAt,sharkTeeth,document:doc,window:win,innerWidth:844,innerHeight:390,devicePixelRatio:1,matchMedia:()=>({matches:true}),requestAnimationFrame:fn=>callback=fn,Math,Set});
   function advance(seconds){for(let i=0;i<seconds*120;i++){now+=1000/120;callback(now);}}
   advance(.05);
   return {get,doc,win,advance,key:(code,type='keydown')=>win.emit(type,{code})};
@@ -30,7 +30,7 @@ test('actual two-pointer joystick and boost controls complete the entire loop',(
   joy.emit('pointermove',{pointerId:1,clientX:46,clientY:292});
   boost.emit('pointerdown',{pointerId:2});h.advance(3.6);
   assert.equal(h.get('result-title').textContent,'Orb rescued!');
-  h.get('retry').emit('click');h.advance(.1);assert.equal(h.get('objective').textContent,'Find the light');assert.equal(h.get('stick').style.transform,'');assert.equal(h.get('result').hidden,true);
+  h.get('retry').emit('click');h.advance(.1);assert.equal(h.get('objective').textContent,'Watch those teeth');assert.equal(h.get('stick').style.transform,'');assert.equal(h.get('result').hidden,true);
 });
 test('pointer cancellation releases joystick and boost; idle escape ends in retry',()=>{
   const h=harness(),joy=h.get('joystick'),boost=h.get('boost');
@@ -42,4 +42,20 @@ test('backgrounding pauses the escape clock and releases held input',()=>{
   const h=harness();h.key('ArrowRight');h.advance(7.7);h.key('ArrowRight','keyup');
   h.doc.hidden=true;h.doc.emit('visibilitychange');const before=h.get('seconds').textContent;h.advance(12);assert.equal(h.get('seconds').textContent,before);
   h.doc.hidden=false;h.doc.emit('visibilitychange');h.advance(5);assert.equal(h.get('result-title').textContent,'You got eaten!');
+});
+
+test('shark mission can be completed and replay returns to the first fish',()=>{
+  const h=harness(2);h.key('ArrowRight');h.advance(7.7);h.key('ArrowRight','keyup');
+  assert.equal(h.get('objective').textContent,'Time to get out!');
+  h.key('ArrowLeft');h.key('Space');h.advance(3.6);
+  assert.equal(h.get('result-title').textContent,'Shark outsmarted!');
+  h.get('retry').emit('click');h.advance(.1);
+  assert.equal(h.get('objective').textContent,'Find the light');
+});
+test('failed shark escape retries the shark with full health',()=>{
+  const h=harness(2);h.key('ArrowRight');h.advance(7.7);h.key('ArrowRight','keyup');h.advance(5);
+  assert.equal(h.get('result').hidden,false);
+  h.get('retry').emit('click');h.advance(.1);
+  assert.equal(h.get('objective').textContent,'Watch those teeth');
+  assert.equal(h.get('health-copy').textContent,'3 / 3 health');
 });

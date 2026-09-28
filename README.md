@@ -1,4 +1,4 @@
-# Deepwater Orbs · V2
+# Deepwater Orbs · V2.1
 
 A small, mobile-first 2D browser game for testing swimming and spatial feel.
 
@@ -8,7 +8,9 @@ Tap **Refresh** in the upper right to load the latest game files and restart you
 
 Turn your iPhone or iPad sideways. Drag the left joystick to swim; its distance from the center controls swimming strength. Let go to glide. Hold BOOST with your other thumb for more speed. On a computer, use WASD or arrow keys and hold Space to boost.
 
-Swim right into the stationary giant fish's mouth, past its teeth, and touch the glowing orb on its tongue. Turn left and hold BOOST to escape before the mouth shuts. Getting eaten gives you an immediate retry; escaping gives you a replay button.
+Swim right into the stationary giant fish's mouth, past its teeth, and touch the glowing orb on its tongue. Turn left and hold BOOST to escape before the mouth shuts. Getting eaten gives you an immediate retry; escaping unlocks **Next: the shark**. Mission 2 has sharp teeth and three hearts. Touching a tooth costs one heart with 1.2 seconds of protection between hits. Running out of health retries the current mission with full health. Escape the shark to finish both missions and play again.
+
+For a quick shark playtest, open https://houseandrade.github.io/deepwater-orbs/?mission=2. Normal play starts with the original fish; refresh restarts from the mission in the URL.
 
 ## What V2 tests
 
@@ -18,7 +20,7 @@ Swim right into the stationary giant fish's mouth, past its teeth, and touch the
 - A 4.5-second escape, closing jaws, success, getting eaten, and retry.
 - Landscape layouts, iOS safe areas, pointer cancellation, and pausing when the page is hidden or the device turns portrait.
 
-There are no dependencies, asset downloads, menus, progression, extra fish, enemies, or powers. Artwork is drawn directly in Canvas 2D.
+The two missions run in sequence, with one stationary boss at a time. There are no dependencies, asset downloads, mission-select menus, upgrades, extra enemies, or powers. Artwork is drawn directly in Canvas 2D.
 
 ## Run locally
 
@@ -41,7 +43,7 @@ Real Safari performance, thumb comfort, and difficulty still need Brian and Dean
 
 ## Files and tuning
 
-- `physics.js`: world geometry, movement, collision, orb pickup, and the escape timer. `WORLD.escapeSeconds` controls escape difficulty; acceleration and drag are in `step`.
+- `physics.js`: world geometry, movement, collision, orb pickup, and the escape timer. Shark tooth triangles are shared by rendering and swept collision checks. `WORLD.escapeSeconds` controls escape difficulty; acceleration and drag are in `step`.
 - `game.js`: input, camera, drawing, and status text. Physics runs at a fixed 120 Hz independent of rendering.
 - `style.css`: landscape controls and safe areas.
 - `tests/`: dependency-free automated checks.
