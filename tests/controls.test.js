@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { WORLD, createGame, step, boundsAt } from '../physics.js';
-const source=readFileSync(new URL('../game.js',import.meta.url),'utf8').replace(/^import .*\n/,'');
+const source=readFileSync(new URL('../game.js',import.meta.url),'utf8').replace(/^const .*await import.*\n/,'');
 function harness(){
   const gradient={addColorStop(){}};
   const ctx=new Proxy({}, {get:(o,k)=>o[k]??(()=>gradient),set:(o,k,v)=>(o[k]=v,true)});

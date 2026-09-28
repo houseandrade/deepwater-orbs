@@ -1,4 +1,4 @@
-import { WORLD, createGame, step, boundsAt } from './physics.js';
+const { WORLD, createGame, step, boundsAt } = await import('./physics.js' + new URL(import.meta.url).search);
 const canvas = document.querySelector('#ocean'), ctx = canvas.getContext('2d');
 const $ = id => document.getElementById(id);
 const joystick = $('joystick'), stick = $('stick'), boost = $('boost');

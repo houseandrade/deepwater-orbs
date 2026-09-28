@@ -4,6 +4,8 @@ A small, mobile-first 2D browser game for testing swimming and spatial feel.
 
 **Play:** https://houseandrade.github.io/deepwater-orbs/
 
+Tap **Refresh** in the upper right to load the latest game files and restart your dive. This also works from a home-screen shortcut and fetches fresh HTML, styles, game code, and physics code.
+
 Turn your iPhone or iPad sideways. Drag the left joystick to swim; its distance from the center controls swimming strength. Let go to glide. Hold BOOST with your other thumb for more speed. On a computer, use WASD or arrow keys and hold Space to boost.
 
 Swim right into the stationary giant fish's mouth, past its teeth, and touch the glowing orb on its tongue. Turn left and hold BOOST to escape before the mouth shuts. Getting eaten gives you an immediate retry; escaping gives you a replay button.
