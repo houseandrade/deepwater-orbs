@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#061e2c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="Swim into a giant fish. Steal its orb. Make it out. A tiny underwater adventure for Brian and Dean.">
+<title>Deepwater Orbs</title>
+<link rel="icon" href="./icon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<canvas id="ocean" aria-label="Deepwater Orbs underwater game. Swim right into the fish’s mouth to collect the glowing orb, then boost left to escape."></canvas>
+<header><div class="brand"><span class="brand-orb"></span><div>DEEPWATER ORBS<small>A LITTLE DEEPER. A LITTLE BRAVER.</small></div></div><span class="version">V2 <i></i> PLAYTEST</span></header>
+<div class="mission" aria-live="polite"><span id="mission-icon">◇</span><div><span id="objective">Find the light</span><small id="hint">Swim into the giant fish’s mouth</small></div></div>
+<div id="escape" hidden><div class="timer-label"><span>THE MOUTH IS CLOSING</span><strong id="seconds">4.5</strong></div><div class="timer-track"><div id="timer-fill"></div></div></div>
+<div class="controls" id="controls"><div id="joystick" role="group" aria-label="Analog swimming joystick"><div class="crosshair"></div><div id="stick"></div></div><span class="swim-label">SWIM</span><button id="boost" aria-label="Hold to boost"><span>↗</span><b>BOOST</b></button><span class="boost-label">HOLD TO GLIDE FASTER</span></div>
+<div class="keyboard">WASD / ARROWS TO SWIM <span>·</span> SPACE TO BOOST</div>
+<div id="result" hidden><div class="result-card"><span id="result-symbol">✦</span><p id="result-eyebrow">BACK IN THE BLUE</p><h1 id="result-title">Orb rescued!</h1><p id="result-copy">That was a close one.</p><button id="retry">Dive again <span>↻</span></button></div></div>
+<div id="rotate"><span>↻</span><h2>A wider ocean awaits</h2><p>Turn your device sideways to swim.</p></div>
+<script type="module" src="./game.js"></script>
+</body>
+</html>

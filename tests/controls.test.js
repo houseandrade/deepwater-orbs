@@ -1,0 +1,45 @@
+// Run the actual game input handlers and animation loop against a minimal DOM.
+// No test-only hooks or dependencies are shipped to players.
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import vm from 'node:vm';
+import { readFileSync } from 'node:fs';
+import { WORLD, createGame, step, boundsAt } from '../physics.js';
+const source=readFileSync(new URL('../game.js',import.meta.url),'utf8').replace(/^import .*\n/,'');
+function harness(){
+  const gradient={addColorStop(){}};
+  const ctx=new Proxy({}, {get:(o,k)=>o[k]??(()=>gradient),set:(o,k,v)=>(o[k]=v,true)});
+  class Element {
+    constructor(){this.handlers={};this.style={};this.hidden=false;this.textContent='';this.firstChild={textContent:''};this.classList={toggle(){},remove(){}};this.tagName='DIV';}
+    addEventListener(type,fn){(this.handlers[type]??=[]).push(fn);}
+    emit(type,data={}){for(const fn of this.handlers[type]??[])fn({preventDefault(){},target:this,...data});}
+    setPointerCapture(){} getBoundingClientRect(){return {left:30,top:240,width:104,height:104};}focus(){}blur(){}getContext(){return ctx;}
+  }
+  const elements=new Map();const get=id=>{if(!elements.has(id))elements.set(id,new Element());return elements.get(id);};
+  const doc=new Element();doc.hidden=false;doc.getElementById=get;doc.querySelector=selector=>get(selector.slice(1));
+  const win=new Element();let callback;let now=100;
+  vm.runInNewContext(source,{WORLD,createGame,step,boundsAt,document:doc,window:win,innerWidth:844,innerHeight:390,devicePixelRatio:1,matchMedia:()=>({matches:true}),requestAnimationFrame:fn=>callback=fn,Math,Set});
+  function advance(seconds){for(let i=0;i<seconds*120;i++){now+=1000/120;callback(now);}}
+  advance(.05);
+  return {get,doc,win,advance,key:(code,type='keydown')=>win.emit(type,{code})};
+}
+test('actual two-pointer joystick and boost controls complete the entire loop',()=>{
+  const h=harness(),joy=h.get('joystick'),boost=h.get('boost');
+  joy.emit('pointerdown',{pointerId:1,clientX:118,clientY:292});
+  h.advance(7.7);assert.equal(h.get('objective').textContent,'Time to get out!');
+  joy.emit('pointermove',{pointerId:1,clientX:46,clientY:292});
+  boost.emit('pointerdown',{pointerId:2});h.advance(3.6);
+  assert.equal(h.get('result-title').textContent,'Orb rescued!');
+  h.get('retry').emit('click');h.advance(.1);assert.equal(h.get('objective').textContent,'Find the light');assert.equal(h.get('stick').style.transform,'');assert.equal(h.get('result').hidden,true);
+});
+test('pointer cancellation releases joystick and boost; idle escape ends in retry',()=>{
+  const h=harness(),joy=h.get('joystick'),boost=h.get('boost');
+  joy.emit('pointerdown',{pointerId:1,clientX:118,clientY:292});h.advance(7.7);
+  joy.emit('pointercancel',{pointerId:1});boost.emit('pointerdown',{pointerId:2});boost.emit('pointercancel',{pointerId:2});h.advance(5);
+  assert.equal(h.get('stick').style.transform,'');assert.equal(h.get('result-title').textContent,'You got eaten!');
+});
+test('backgrounding pauses the escape clock and releases held input',()=>{
+  const h=harness();h.key('ArrowRight');h.advance(7.7);h.key('ArrowRight','keyup');
+  h.doc.hidden=true;h.doc.emit('visibilitychange');const before=h.get('seconds').textContent;h.advance(12);assert.equal(h.get('seconds').textContent,before);
+  h.doc.hidden=false;h.doc.emit('visibilitychange');h.advance(5);assert.equal(h.get('result-title').textContent,'You got eaten!');
+});
