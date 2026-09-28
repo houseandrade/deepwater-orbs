@@ -57,6 +57,13 @@ function fish(t) {
   path(p=>{p.moveTo(2520,660);p.quadraticCurveTo(2900,720,2710,975);p.quadraticCurveTo(2520,900,2470,710);},'#275561','#48778055',4);
   const eyeX=1430,eyeY=218;glow(eyeX,eyeY,100,'#c6dfa815');ellipse(eyeX,eyeY,63,60,'#224651');ellipse(eyeX,eyeY,44,44,'#c1c79b');ellipse(eyeX-8,eyeY+3,18,28,'#132e39');ellipse(eyeX-18,eyeY-13,7,7,'#f1edc8');
   path(p=>{p.moveTo(1365,160);p.quadraticCurveTo(1430,126,1498,165);},null,'#648983',13);
+  // Keep the entire cutaway inside the same silhouette used for the body.
+  // The opening now follows the fish's curved face instead of drawing a
+  // rectangular mouth in front of it. This also contains the closing jaws.
+  ctx.save();
+  ctx.beginPath();
+  ctx.ellipse(2130,570,1050,550,0,0,Math.PI*2);
+  ctx.clip();
   const a=boundsAt(1000,state.jaw),b=boundsAt(WORLD.back,state.jaw);
   const mouth=ctx.createLinearGradient(1000,530,2310,530);mouth.addColorStop(0,'#10252f');mouth.addColorStop(.3,'#252839');mouth.addColorStop(1,'#392334');
   path(p=>{p.moveTo(1005,a.top);p.bezierCurveTo(1440,boundsAt(1440,state.jaw).top,2070,b.top-26,WORLD.back,b.top);p.quadraticCurveTo(2380,520,WORLD.back,b.bottom);p.bezierCurveTo(1900,b.bottom+45,1450,boundsAt(1450,state.jaw).bottom,1005,a.bottom);p.quadraticCurveTo(1060,545,1005,a.top);p.closePath();},mouth,'#729288',12);
@@ -70,6 +77,7 @@ function fish(t) {
     if(i<4)path(p=>{p.moveTo(x,wall.bottom-5);p.lineTo(x+22,wall.bottom-35);p.lineTo(x+41,wall.bottom-7);p.closePath();},'#91aa9f');
   }
   if(state.phase!=='escape'&&state.phase!=='won'&&state.phase!=='eaten')drawOrb(WORLD.orbX,WORLD.orbY,t,1);
+  ctx.restore();
 }
 function drawOrb(x,y,t,scale) {ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);glow(0,0,125,'#dfef8b22');glow(0,0,55,'#e5f3a53a');ellipse(0,0,24,24,'#dcecb0');ellipse(-5,-7,10,8,'#f4f9d8');ctx.strokeStyle='#e7f0b74d';ctx.lineWidth=1.5;ctx.beginPath();ctx.arc(0,0,34+Math.sin(t*2)*3,0,Math.PI*2);ctx.stroke();for(let i=0;i<4;i++){const a=t*.6+i*Math.PI/2;ellipse(Math.cos(a)*43,Math.sin(a)*43,2,2,'#ecf6c6');}ctx.restore();}
 function seabed(t) {
