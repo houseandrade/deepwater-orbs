@@ -27,6 +27,7 @@ jobs:
         run: |
           mkdir public
           cp index.html style.css game.js physics.js icon.svg .nojekyll public/
+          cp -R assets public/assets
       - uses: actions/upload-pages-artifact@v3
         with:
           path: public

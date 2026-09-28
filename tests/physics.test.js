@@ -75,3 +75,12 @@ test('steering through moving gaps permits a full-health squid escape',()=>{
     assert.equal(s.phase,'won');assert.equal(s.health,3);
   }
 });
+
+test('shark collision follows its projecting snout and leaves the mouth open',()=>{
+  assert.equal(solid(1020,210,0,17,2),true);
+  assert.equal(solid(950,540,0,17,2),false);
+  assert.equal(solid(1150,555,0,17,2),false);
+  const s=createGame(2);s.x=850;s.y=210;
+  run(s,{x:1,boost:true},1);
+  assert.ok(s.x<1020);assert.ok(!solid(s.x,s.y,s.jaw,17,2));
+});

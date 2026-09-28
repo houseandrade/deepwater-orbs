@@ -1,4 +1,4 @@
-# Deepwater Orbs · V2.3
+# Deepwater Orbs · V2.4
 
 A small, mobile-first 2D browser game for testing swimming and spatial feel.
 
@@ -20,7 +20,7 @@ For a quick shark playtest, open https://houseandrade.github.io/deepwater-orbs/?
 - A 4.5-second escape, closing jaws, success, getting eaten, and retry.
 - Landscape layouts, iOS safe areas, pointer cancellation, and pausing when the page is hidden or the device turns portrait.
 
-The three missions run in sequence, with one stationary boss at a time. There are no dependencies, asset downloads, upgrades, extra enemies, or powers. Artwork is drawn directly in Canvas 2D.
+The three missions run in sequence, with one stationary boss at a time. There are no runtime libraries, upgrades, extra enemies, or powers. Artwork is rendered in Canvas 2D; the shark uses four locally hosted painted images.
 
 ## Run locally
 
@@ -59,3 +59,11 @@ Two pairs of moving interior tentacles create shifting gaps. Contact costs one o
 Orb pickup starts a 6.5-second escape. An ink cloud builds and clears over 2.4 seconds; it dims the interior but keeps the swimmer, controls, timer, and exit direction readable. The squid does not use the shark's suction pulse. Pause freezes tentacles, ink, health protection, and the escape clock. Replay and retry keep Mission 3 selected and reset health.
 
 Automated checks include moving-arm contact, damage protection, temporary ink, direct selection, progression from the shark, and full-health escapes at several tentacle timings. Phone/iPad playtesting is still the authority on difficulty and thumb comfort.
+
+## Storybook art pilot (V2.4)
+
+The shark mission is the first playable scene in the approved glowing-storybook direction. It uses a painted ocean backdrop, shark skin, mouth interior and diver, plus a warmer gold orb. Mission 1 and Mission 3 retain their prototype artwork for this first art review.
+
+The four images in `assets/storybook/` were generated with the built-in image tool using the approved concept as the style reference. The exact prompts are in `assets/storybook/prompts.txt`. Teeth still use the same triangles for both drawing and damage. The head now has a projecting snout and a separate lower-jaw profile, shared by rendering and body collision. The interior passage and tooth positions are unchanged. No swimming, suction, health, mission, or timer values changed in the art pass. Images load once and the existing drawing remains playable if an image cannot load. Refresh applies the cache token to image requests as well as scripts. The deployment copies the asset directory.
+
+Playtest the shark on your phone and iPad to judge the painted textures, diver visibility, and smoothness before applying this style to the other bosses.

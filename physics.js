@@ -1,5 +1,34 @@
 // World units and seconds. The fish never changes position; only its jaws close.
 export const WORLD = { width: 3400, height: 1280, mouth: 1080, back: 2290, orbX: 2080, orbY: 583, escapeSeconds: 4.5 };
+// A blunt projecting snout and a separate lower jaw, shared by art and collision.
+export const SHARK_OUTLINE = (() => {
+  const points = [[1090,325]];
+  const curve = (c1,c2,end) => {
+    const start=points[points.length-1];
+    for(let i=1;i<=20;i++) {
+      const t=i/20,u=1-t;
+      points.push([u*u*u*start[0]+3*u*u*t*c1[0]+3*u*t*t*c2[0]+t*t*t*end[0],u*u*u*start[1]+3*u*u*t*c1[1]+3*u*t*t*c2[1]+t*t*t*end[1]]);
+    }
+  };
+  curve([955,290],[920,155],[985,130]);
+  curve([1300,80],[1710,85],[2110,60]);
+  curve([2670,20],[3060,270],[3160,520]);
+  curve([3290,880],[2870,1100],[2520,1120]);
+  curve([1990,1140],[1500,1030],[1230,885]);
+  curve([1150,845],[1090,805],[1130,749]);
+  return points;
+})();
+function circleTouchesShark(x,y,radius) {
+  let inside=false;
+  for(let i=0,j=SHARK_OUTLINE.length-1;i<SHARK_OUTLINE.length;j=i++) {
+    const a=SHARK_OUTLINE[j],b=SHARK_OUTLINE[i];
+    if((a[1]>y)!==(b[1]>y) && x<(b[0]-a[0])*(y-a[1])/(b[1]-a[1])+a[0])inside=!inside;
+    const dx=b[0]-a[0],dy=b[1]-a[1],length=dx*dx+dy*dy;
+    const t=length?Math.max(0,Math.min(1,((x-a[0])*dx+(y-a[1])*dy)/length)):0;
+    if((x-a[0]-t*dx)**2+(y-a[1]-t*dy)**2<=radius**2)return true;
+  }
+  return inside;
+}
 export function createGame(mission = 1) {
   return { mission: [1,2,3].includes(mission) ? mission : 1, escapeDuration: mission === 3 ? 6.5 : WORLD.escapeSeconds, ink: 0, health: 3, hurtTime: 0, suction: 0, deathReason: '', x: 460, y: 555, vx: 0, vy: 0, facingX: 1, facingY: 0, phase: 'approach', remaining: mission === 3 ? 6.5 : WORLD.escapeSeconds, time: 0, boosting: false, jaw: 0 };
 }
@@ -67,10 +96,10 @@ function toothHit(s, x, y, teeth) {
   damage(s,'teeth');
   return true;
 }
-export function solid(x, y, jaw = 0, radius = 17) {
+export function solid(x, y, jaw = 0, radius = 17, mission = 1) {
   if (x < radius || x > WORLD.width - radius || y < radius + 75 || y > WORLD.height - radius - 40) return true;
   const ellipse = ((x - 2130) / (1050 + radius)) ** 2 + ((y - 570) / (550 + radius)) ** 2;
-  if (ellipse > 1) return false;
+  if (mission === 2 ? !circleTouchesShark(x,y,radius) : ellipse > 1) return false;
   const b = boundsAt(x, jaw);
   return !(x < WORLD.back - radius && y > b.top + radius + 16 && y < b.bottom - radius);
 }
@@ -104,9 +133,9 @@ export function step(s, input, dt) {
   const count = Math.max(1, Math.ceil(Math.hypot(s.vx, s.vy) * dt / 7));
   for (let i = 0; i < count; i++) {
     const nx = s.x + s.vx * dt / count;
-    if (!solid(nx, s.y, s.jaw) && !toothHit(s, nx, s.y, teeth) && !tentacleHit(s,nx,s.y,arms)) s.x = nx; else s.vx = 0;
+    if (!solid(nx, s.y, s.jaw, 17, s.mission) && !toothHit(s, nx, s.y, teeth) && !tentacleHit(s,nx,s.y,arms)) s.x = nx; else s.vx = 0;
     const ny = s.y + s.vy * dt / count;
-    if (!solid(s.x, ny, s.jaw) && !toothHit(s, s.x, ny, teeth) && !tentacleHit(s,s.x,ny,arms)) s.y = ny; else s.vy = 0;
+    if (!solid(s.x, ny, s.jaw, 17, s.mission) && !toothHit(s, s.x, ny, teeth) && !tentacleHit(s,s.x,ny,arms)) s.y = ny; else s.vy = 0;
   }
   if (s.phase === 'eaten') return;
   if (s.phase === 'approach' && s.x > WORLD.mouth + 40) s.phase = 'inside';
